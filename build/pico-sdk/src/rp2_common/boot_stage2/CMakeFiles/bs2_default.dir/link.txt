@@ -1,1 +1,0 @@
-/nix/store/z23hni99r2ap9zga5shvfgmx3idlay28-gcc-arm-embedded-10.3.1/bin/arm-none-eabi-gcc -mcpu=cortex-m0plus -mthumb -O3 -DNDEBUG -Wl,--build-id=none --specs=nosys.specs -nostartfiles -Wl,--script=/_scratch/pico-gradient/src/pico-sdk/src/rp2_common/boot_stage2/boot_stage2.ld -Wl,-Map=bs2_default.elf.map CMakeFiles/bs2_default.dir/compile_time_choice.S.obj -o bs2_default.elf 

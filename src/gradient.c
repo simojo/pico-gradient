@@ -10,7 +10,7 @@
 #include "ws2812.pio.h"
 
 const uint32_t NUM_PIXELS = 100;
-const uint32_t PIN = 0;
+const uint32_t PIN = 1;
 
 static inline void put_pixel(uint32_t pixel_grb) {
   pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
@@ -31,4 +31,14 @@ int main() {
   ws2812_parallel_program_init(pio, sm, offset, PIN, 800000, IS_RGBW);
 
   put_pixel(rgb_u32(200, 10, 100));
+
+  // debug
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  while (1) {
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
+    sleep_ms(250);
+    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+    sleep_ms(250);
+  }
 }
