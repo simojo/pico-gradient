@@ -21,8 +21,22 @@ static inline uint32_t rgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(g) << 16) | ((uint32_t)(r) << 8) | ((uint32_t)(b));
 }
 
+static void debug_callback() {
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
+  while (1) {
+    gpio_put(25, 1);
+    sleep_ms(250);
+    gpio_put(25, 0);
+    sleep_ms(250);
+  }
+}
+
 int main() {
   stdio_init_all();
+
+  debug_callback();
+
   PIO pio = pio0;
   int sm = 0;
   uint offset = pio_add_program(pio, &ws2812_program);
@@ -31,14 +45,4 @@ int main() {
   ws2812_parallel_program_init(pio, sm, offset, PIN, 800000, IS_RGBW);
 
   put_pixel(rgb_u32(200, 10, 100));
-
-  // debug
-  gpio_init(PICO_DEFAULT_LED_PIN);
-  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-  while (1) {
-    gpio_put(PICO_DEFAULT_LED_PIN, 1);
-    sleep_ms(250);
-    gpio_put(PICO_DEFAULT_LED_PIN, 0);
-    sleep_ms(250);
-  }
 }
