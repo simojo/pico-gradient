@@ -1,0 +1,1 @@
+cmd='/nix/store/sg4gfdp6ahmz8341zh8r3f2s1hylmy47-cmake-3.21.2/bin/cmake;-GUnix Makefiles;<SOURCE_DIR><SOURCE_SUBDIR>'

@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
-include(pico_sdk_import.cmake)
-
-set(PICO_SDK_FETCH_FROM_GIT on)
+include(pico-sdk/pico_sdk_init.cmake)
 
 project(gradient)
 
@@ -16,8 +14,10 @@ add_executable(gradient
   gradient.c
 )
 
+pico_generate_pio_header(gradient ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated)
+
 # Pull in our pico_stdlib which pulls in commonly used features
-target_link_libraries(gradient pico_stdlib)
+target_link_libraries(gradient pico_stdlib hardware_pio)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(gradient)

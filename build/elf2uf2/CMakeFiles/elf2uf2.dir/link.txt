@@ -1,0 +1,1 @@
+/nix/store/4g5fidyk19akng9n91cql60ylrjq93s6-gcc-wrapper-10.3.0/bin/g++ CMakeFiles/elf2uf2.dir/main.cpp.o -o elf2uf2 

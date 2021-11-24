@@ -1,24 +1,9 @@
 { pkgs ? import <unstable> {} }:
 
 let
-  shellname = "cs201";
-  mach-nix = import (
-    builtins.fetchGit {
-      url = "https://github.com/DavHau/mach-nix/";
-      ref = "2.0.0";
-    }
-  );
-
-  mods = mach-nix.mkPython {
-    python = pkgs.python39;
-    requirements = ''
-      python-vlc
-    '';
-  };
+  shellname = "pico";
 
   extras = with pkgs; [
-    python39Packages.sly
-    mono
     gcc
     pkgs.cmake # Raspberry Pi Pico SDK
     pkgs.gcc-arm-embedded # Raspberry Pi Pico SDK
@@ -26,14 +11,12 @@ let
     llvmPackages_11.clang
     cmake
     cmakeCurses
-    swiProlog
   ];
 in
   pkgs.stdenv.mkDerivation {
     name = shellname;
     buildInputs = [
       extras
-      mods
     ];
     shellHook = ''
       export NIX_SHELL_NAME='${shellname}'

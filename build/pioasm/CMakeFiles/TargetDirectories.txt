@@ -1,0 +1,3 @@
+/_scratch/pico-gradient/build/pioasm/CMakeFiles/rebuild_cache.dir
+/_scratch/pico-gradient/build/pioasm/CMakeFiles/edit_cache.dir
+/_scratch/pico-gradient/build/pioasm/CMakeFiles/pioasm.dir

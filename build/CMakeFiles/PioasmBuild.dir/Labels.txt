@@ -1,0 +1,13 @@
+# Target labels
+ PioasmBuild
+# Source files and their labels
+/_scratch/pico-gradient/build/CMakeFiles/PioasmBuild
+/_scratch/pico-gradient/build/CMakeFiles/PioasmBuild.rule
+/_scratch/pico-gradient/build/CMakeFiles/PioasmBuild-complete.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-build.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-configure.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-download.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-install.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-mkdir.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-patch.rule
+/_scratch/pico-gradient/build/pioasm/src/PioasmBuild-stamp/PioasmBuild-update.rule
