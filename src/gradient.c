@@ -40,7 +40,7 @@ int main() {
   uint offset = pio_add_program(pio, &ws2812_program);
   bool IS_RGBW = false;
 
-  ws2812_parallel_program_init(pio, sm, offset, PIN, 800000, IS_RGBW);
+  ws2812_program_init(pio, sm, offset, PIN, 800000, IS_RGBW);
 
   put_pixel(rgb_u32(200, 10, 100));
 
