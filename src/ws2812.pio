@@ -11,9 +11,9 @@
 .define public T2 5
 .define public T3 3
 
-.lang_opt python sideset_init = pico.PIO.OUT_HIGH
-.lang_opt python out_init     = pico.PIO.OUT_HIGH
-.lang_opt python out_shiftdir = 1
+; .lang_opt python sideset_init = pico.PIO.OUT_HIGH
+; .lang_opt python out_init     = pico.PIO.OUT_HIGH
+; .lang_opt python out_shiftdir = 1
 
 .wrap_target
 bitloop:

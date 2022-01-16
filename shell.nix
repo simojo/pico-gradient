@@ -5,10 +5,12 @@ let
 
   extras = with pkgs; [
     gcc
-    pkgs.cmake # Raspberry Pi Pico SDK
-    pkgs.gcc-arm-embedded # Raspberry Pi Pico SDK
-    pkgs.llvm # Raspberry Pi Pico SDK
+    python39
+    cmake # Raspberry Pi Pico SDK
+    gcc-arm-embedded # Raspberry Pi Pico SDK
+    llvm # Raspberry Pi Pico SDK
     llvmPackages_11.clang
+    ccls
     cmake
     cmakeCurses
   ];
