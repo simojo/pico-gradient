@@ -5,7 +5,6 @@ let
 
   extras = with pkgs; [
     gcc
-    python39
     cmake # Raspberry Pi Pico SDK
     gcc-arm-embedded # Raspberry Pi Pico SDK
     llvm # Raspberry Pi Pico SDK
@@ -13,6 +12,7 @@ let
     ccls
     cmake
     cmakeCurses
+    platformio
   ];
 in
   pkgs.stdenv.mkDerivation {
