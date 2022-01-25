@@ -25,14 +25,15 @@ int main() {
   printf("[trace] ws2812b init using pin %d", pin_number);
 
   PIO pio = pio0;
-  uint sm_id = pio_claim_unused_sm(pio0, true);
   uint offset = pio_add_program(pio, &ws2812_program);
 
-  ws2812_program_init(pio, sm_id, offset, pin_number, 800000);
+  ws2812_program_init(pio, 0, offset, pin_number, 800000);
 
+  uint num_pixels = 100;
   while (1) {
-    // FIXME: this only works for one pixel
-    put_pixel(urgb_u32(255, 255, 255));
+    for (int i = 0; i < num_pixels; i++) {
+      put_pixel(urgb_u32(255, 255, 255));
+    }
     sleep_ms(10);
   }
 }
