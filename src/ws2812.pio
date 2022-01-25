@@ -11,9 +11,8 @@
 .define public T2 5
 .define public T3 3
 
-; .lang_opt python sideset_init = pico.PIO.OUT_HIGH
-; .lang_opt python out_init     = pico.PIO.OUT_HIGH
-; .lang_opt python out_shiftdir = 1
+; FIXME: how to ensure this is looping when there is no loop callback
+; FIXME: how to ensure FIFO is being added to
 
 .wrap_target
 bitloop:
@@ -28,14 +27,14 @@ do_zero:
 % c-sdk {
 #include "hardware/clocks.h"
 
-static inline void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float freq, bool rgbw) {
+static inline void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float freq) {
 
     pio_gpio_init(pio, pin);
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
 
     pio_sm_config c = ws2812_program_get_default_config(offset);
     sm_config_set_sideset_pins(&c, pin);
-    sm_config_set_out_shift(&c, false, true, rgbw ? 32 : 24);
+    sm_config_set_out_shift(&c, false, true, 24);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
 
     int cycles_per_bit = ws2812_T1 + ws2812_T2 + ws2812_T3;
