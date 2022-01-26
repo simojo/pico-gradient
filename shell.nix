@@ -22,15 +22,5 @@ in
     ];
     shellHook = ''
       export NIX_SHELL_NAME='${shellname}'
-      export PICO_SDK_PATH='/_scratch/picoCode/pico-sdk'
-      PICO_EXAMPLES_PATH='FIXME'
-      PICO_EXTRAS_PATH='FIXME'
-      PICO_PLAYGROUND_PATH='FIXME'
-      alias commands='echo "
-        mkdir build
-        cd build
-        cmake ../src -DPICO_SDK_PATH=/path_to_sdk
-        make
-      "'
     '';
   }
