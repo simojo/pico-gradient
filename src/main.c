@@ -28,6 +28,11 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
 
 int main() {
   stdio_init_all();
+
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  gpio_put(PICO_DEFAULT_LED_PIN, 1);
+
   uint pin_number = 1;
   printf("[trace] ws2812b init using pin %d", pin_number);
 
