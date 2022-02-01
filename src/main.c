@@ -12,6 +12,13 @@ static inline void put_pixel(uint32_t pixel_grb) {
 // https://github.com/raspberrypi/pico-feedback/issues/121
 // https://dev.to/admantium/raspberry-pico-programming-with-pio-state-machines-1gbg
 
+// T0H | 0 code, high voltage time | 0.4us  | ±150ns
+// T1H | 1 code, high voltage time | 0.8us  | ±150ns
+// T0L | 0 code, low voltage time | 0.85us | ±150ns
+// T1L | 1 code, low voltage time  | 0.45us | ±150ns
+// RES | low voltage time          | Above 50µs
+
+
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return
     ((uint32_t)(r) << 8) |
