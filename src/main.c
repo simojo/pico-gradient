@@ -18,6 +18,7 @@ static inline void put_pixel(uint32_t pixel_grb) {
 // T1L | 1 code, low voltage time  | 0.45us | ±150ns
 // RES | low voltage time          | Above 50µs
 
+const uint led_pin = 25;
 
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return
@@ -29,9 +30,15 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
 int main() {
   stdio_init_all();
 
-  gpio_init(PICO_DEFAULT_LED_PIN);
-  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-  gpio_put(PICO_DEFAULT_LED_PIN, 1);
+  gpio_init(led_pin);
+  gpio_set_dir(led_pin, 1);
+
+  for (int i = 0; i < 10; i++) {
+    gpio_put(led_pin, 1);
+    sleep_ms(250);
+    gpio_put(led_pin, 0);
+    sleep_ms(250);
+  }
 
   uint pin_number = 1;
   printf("[trace] ws2812b init using pin %d", pin_number);
@@ -41,11 +48,20 @@ int main() {
 
   ws2812_program_init(pio, 0, offset, pin_number, 800000);
 
-  uint num_pixels = 100;
+  uint num_pixels = 150;
+  uint lit = 0;
   while (1) {
     for (int i = 0; i < num_pixels; i++) {
-      put_pixel(urgb_u32(255, 255, 255));
+      if (i == lit) {
+        put_pixel(urgb_u32(255, 199, 38));
+      } else {
+        put_pixel(urgb_u32(0, 51, 102));
+      }
     }
-    sleep_ms(10);
+    lit++;
+    if (lit == num_pixels) {
+      lit = 0;
+    }
+    sleep_ms(100);
   }
 }
