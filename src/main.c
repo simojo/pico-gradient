@@ -191,9 +191,9 @@ int main() {
     for (int i = 0; i < num_pixels; i++) {
       // FIXME
       // rgbs[i] = hsv_to_rgb(hsv_current);
-      rgbs[i].r = 194;
-      rgbs[i].g = 41;
-      rgbs[i].b = 244;
+      rgbs[i].r = 107;
+      rgbs[i].g = 24;
+      rgbs[i].b = 135;
       hsv_current.h += h_step;
       if (hsv_current.h < 0)
         hsv_current.h += 360;
