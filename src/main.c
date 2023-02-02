@@ -51,14 +51,10 @@ static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
   float s = hsv.s;
   float v = hsv.v;
   float c = v * s;
-  float x = c * (1 - abs(fmodf((h / 60), 2) - 1));
+  float x = c * (1 - abs(fmodf((h / 60.0), 2) - 1));
   float m = v - c;
   float rgb_[3];
-  if (false) {
-  } else if (0 <= h && h < 60) {
-    rgb_[0] = c;
-    rgb_[1] = x;
-    rgb_[2] = 0;
+  if (0) {
   } else if (0 <= h && h < 60) {
     rgb_[0] = c;
     rgb_[1] = x;
@@ -93,12 +89,13 @@ static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
 }
 
 static inline struct Hsv get_hsv_adc() {
+  // NOTE: division with integers will auto round, must multiply by 360 before deviding by 4096
   adc_select_input(0); // gp26
-  uint16_t h = ((uint16_t)adc_read()) / (1 << 12) * 360;
+  uint16_t h = ((uint16_t)adc_read()) * 360 / (1 << 12);
   adc_select_input(1); // gp27
-  uint16_t s = ((uint16_t)adc_read()) / (1 << 12) * 100;
+  uint16_t s = ((uint16_t)adc_read()) * 360 / (1 << 12);
   adc_select_input(2); // gp28
-  uint16_t v = ((uint16_t)adc_read()) / (1 << 12) * 100;
+  uint16_t v = ((uint16_t)adc_read()) * 360 / (1 << 12);
   struct Hsv result = {
     .h = h,
     .s = s,
@@ -163,13 +160,13 @@ int main() {
       }
     } */
 
-    hsv1.h = 246;
-    hsv1.s = 69;
-    hsv1.v = 49;
+    hsv1.h = 0;
+    hsv1.s = 79;
+    hsv1.v = 78;
 
-    hsv2.h = 285;
-    hsv2.s = 83;
-    hsv2.v = 96;
+    hsv2.h = 261;
+    hsv2.s = 79;
+    hsv2.v = 78;
 
     // create an array of rgb pixels
     float delta = hsv2.h - hsv1.h;
@@ -189,11 +186,14 @@ int main() {
     struct Hsv hsv_current = hsv1;
     struct Rgb rgbs[num_pixels];
     for (int i = 0; i < num_pixels; i++) {
-      // FIXME
-      // rgbs[i] = hsv_to_rgb(hsv_current);
-      rgbs[i].r = 107;
-      rgbs[i].g = 24;
-      rgbs[i].b = 135;
+      // FIXME: remove line below
+      hsv_current.h = i * 2;
+      hsv_current.s = 100;
+      hsv_current.v = 60;
+      rgbs[i] = hsv_to_rgb(hsv_current);
+      /* rgbs[i].r = 107; */
+      /* rgbs[i].g = 24; */
+      /* rgbs[i].b = 135; */
       hsv_current.h += h_step;
       if (hsv_current.h < 0)
         hsv_current.h += 360;
