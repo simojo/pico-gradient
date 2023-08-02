@@ -119,6 +119,9 @@ static inline void blink() {
 int main() {
   stdio_init_all();
   adc_init();
+  adc_gpio_init(0);
+  adc_gpio_init(1);
+  adc_gpio_init(2);
   gpio_init(26); // adc0
   gpio_init(27); // adc1
   gpio_init(28); // adc2
