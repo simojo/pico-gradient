@@ -1,10 +1,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "pico/stdlib.h"
 #include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
-#include "pico/stdlib.h"
 #include "ws2812.pio.h"
 
 static inline void put_pixel(uint32_t pixel_grb) {
