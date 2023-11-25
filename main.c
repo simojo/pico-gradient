@@ -38,6 +38,8 @@ struct Rgb {
 
 static struct Hsv hsv1 = {0, 0, 0};
 static struct Hsv hsv2 = {0, 0, 0};
+static struct Hsv hsvReadPrevious = {0, 0, 0};
+static struct Hsv hsvReadCurrent = {0, 0, 0};
 
 static inline uint32_t urgb_u32(struct Rgb rgb) {
   return
@@ -116,92 +118,79 @@ static inline void blink() {
   }
 }
 
+static inline int mod(float a, float b) {
+  float r = fmodf(a, b);
+  return r < 0.0 ? r + b : r;
+}
+
 int main() {
   stdio_init_all();
   adc_init();
-  adc_gpio_init(0);
-  adc_gpio_init(1);
-  adc_gpio_init(2);
-  gpio_init(26); // adc0
-  gpio_init(27); // adc1
-  gpio_init(28); // adc2
-  gpio_init(1); // toggle hsv1
+
+  adc_gpio_init(26); // GP26_A0: set hue
+  adc_gpio_init(27); // GP27_A0: set saturation
+  adc_gpio_init(28); // GP28_A0: set brightness
+  gpio_init(1); // GP1: toggle hsv1
   gpio_set_dir(1, 0);
 
-  uint pin_number = 0;
+  uint ws2812_pin_number = 0; // GP0: ws2812 bit bashing to neopixel
 
   PIO pio = pio0;
   uint offset = pio_add_program(pio, &ws2812_program);
 
-  ws2812_program_init(pio, 0, offset, pin_number, 800000);
+  ws2812_program_init(pio, 0, offset, ws2812_pin_number, 800000);
 
   while (1) {
     blink();
     // read hsv input from adc pins & toggle current through each pot rapidly
-    /* struct Hsv temphsv = get_hsv_adc();
-    // check to see if current input differs from other side
+    hsvReadCurrent = get_hsv_adc();
+    // check to see if current input differs from previously cached one
     // if it differs, replace the corresponding hsv with the correct one
-    if (gpio_get(1)) {
-      // if switch is toggled to the left (on)
-      if (1
-        && temphsv.h == hsv2.h
-        && temphsv.s == hsv2.s
-        && temphsv.v == hsv2.v) {
-        // do nothing
-      } else {
-        hsv1 = temphsv;
+    if (1
+        && hsvReadCurrent.h != hsvReadPrevious.h
+        && hsvReadCurrent.s != hsvReadPrevious.s
+        && hsvReadCurrent.v != hsvReadPrevious.v) {
+      // hsv input has changed, from previous readout;
+      // read switch to decide to change either hsv1 or hsv2
+      int changingHsv1 = gpio_get(1);
+      int changingHsv2 = !changingHsv1;
+      // update corresponding hsv value
+      if (changingHsv1) {
+        hsv1 = hsvReadCurrent;
       }
-    } else {
-      // if switch is toggled to the right (off)
-      if (1
-        && temphsv.h == hsv1.h
-        && temphsv.s == hsv1.s
-        && temphsv.v == hsv1.v) {
-        // do nothing
-      } else {
-        hsv2 = temphsv;
+      if (changingHsv2) {
+        hsv2 = hsvReadCurrent;
       }
-    } */
-
-    hsv1.h = 0;
-    hsv1.s = 79;
-    hsv1.v = 78;
-
-    hsv2.h = 261;
-    hsv2.s = 79;
-    hsv2.v = 78;
+    }
 
     // create an array of rgb pixels
-    float delta = hsv2.h - hsv1.h;
+    float deltaH = hsv2.h - hsv1.h;
+    // determine which direction (0->360 or 360->0) the hue should fade
+    // based upon the difference of the two hues
     if (0) {}
-    else if (360 > delta && delta > 180) {
-      delta = 360 - delta;
-    } else if (0 <= delta && delta <= 180) {
+    else if (360 > deltaH && deltaH > 180) {
+      deltaH = 360 - deltaH;
+    } else if (0 <= deltaH && deltaH <= 180) {
       // do nothing
-    } else if (0 > delta && delta > -180) {
+    } else if (0 > deltaH && deltaH > -180) {
       // do nothing
-    } else if (-180 >= delta && delta >= -360) {
-      delta = 360 + delta;
+    } else if (-180 >= deltaH && deltaH >= -360) {
+      deltaH = 360 + deltaH;
     }
-    float h_step = delta / num_pixels;
-    float s_step = (hsv2.s - hsv1.s) / num_pixels;
-    float v_step = (hsv2.v - hsv1.v) / num_pixels;
+    // choose steps such that
+    // the range [0,num_pixels-1) maps to [hsv1.value,hsv2.value]
+    // (hence dividing by (num_pixels - 1), which is the maximum index)
+    float h_step = deltaH / (float)(num_pixels - 1);
+    float s_step = (hsv2.s - hsv1.s) / (float)(num_pixels - 1);
+    float v_step = (hsv2.v - hsv1.v) / (float)(num_pixels - 1);
     struct Hsv hsv_current = hsv1;
     struct Rgb rgbs[num_pixels];
+    // iterate along the range [0, num_pixels-1]
     for (int i = 0; i < num_pixels; i++) {
-      // FIXME: remove line below
-      hsv_current.h = i * 2;
-      hsv_current.s = 100;
-      hsv_current.v = 60;
+      // set value current rgb value to hsv_current
       rgbs[i] = hsv_to_rgb(hsv_current);
-      /* rgbs[i].r = 107; */
-      /* rgbs[i].g = 24; */
-      /* rgbs[i].b = 135; */
-      hsv_current.h += h_step;
-      if (hsv_current.h < 0)
-        hsv_current.h += 360;
-      if (hsv_current.h > 360)
-        hsv_current.h -= 360;
+      // then iterate all the values
+      hsv_current.h = mod(hsv_current.h + h_step, 360.0);
       hsv_current.s += s_step;
       hsv_current.v += v_step;
     }
