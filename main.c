@@ -1,11 +1,16 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include "pico-ssd1306/ssd1306.h"
+#include "pico/stdio.h"
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "ws2812.pio.h"
+#include "hardware/i2c.h"
+#include "ssd1306.h"
 
 static inline void put_pixel(uint32_t pixel_grb) {
   pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
@@ -23,6 +28,11 @@ static inline void put_pixel(uint32_t pixel_grb) {
 
 const uint led_pin = 25;
 const uint num_pixels = 150;
+const int ws2812_pin_number = 0; // GP0: ws2812 bit bashing to neopixel
+
+#define I2C_PORT i2c0
+#define I2C_PIN_SDA 4
+#define I2C_PIN_SCL 5
 
 struct Hsv {
   float h;
@@ -53,7 +63,7 @@ static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
   float s = hsv.s;
   float v = hsv.v;
   float c = v * s;
-  float x = c * (1 - abs(fmodf((h / 60.0), 2) - 1));
+  float x = c * (1 - fabsf(fmodf((h / 60.0), 2) - 1));
   float m = v - c;
   float rgb_[3];
   if (0) {
@@ -124,6 +134,7 @@ static inline int mod(float a, float b) {
 }
 
 int main() {
+  printf("starting\n");
   stdio_init_all();
   adc_init();
 
@@ -133,7 +144,25 @@ int main() {
   gpio_init(1); // GP1: toggle hsv1
   gpio_set_dir(1, 0);
 
-  uint ws2812_pin_number = 0; // GP0: ws2812 bit bashing to neopixel
+  printf("start ssd13066? [y/n]\n");
+  char start_ssd1306_char = getchar_timeout_us(5e6);
+  if (start_ssd1306_char == 'y') {
+    i2c_init(I2C_PORT, 1000000); //Use i2c port with baud rate of 1Mhz
+    //Set pins for i2c operation
+    gpio_set_function(I2C_PIN_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_PIN_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_PIN_SDA);
+    gpio_pull_up(I2C_PIN_SCL);
+
+    //Create a new display object
+    pico_ssd1306::SSD1306 display = pico_ssd1306::SSD1306(I2C_PORT, 0x3D, pico_ssd1306::Size::W128xH64);
+
+    //create a vertical line on x: 64 y:0-63
+    for (int y = 0; y < 64; y++){
+        display.setPixel(64, y);
+    }
+    display.sendBuffer(); //Send buffer to device and show on screen
+  }
 
   PIO pio = pio0;
   uint offset = pio_add_program(pio, &ws2812_program);

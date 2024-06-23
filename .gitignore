@@ -1,2 +1,9 @@
-build/
 *.uf2
+CMakeCache.txt
+CMakeFiles/
+build.ninja
+build/
+cmake_install.cmake
+elf2uf2/
+generated/
+.cache/
