@@ -1,16 +1,13 @@
+#include "hardware/adc.h"
+#include "hardware/clocks.h"
+#include "hardware/i2c.h"
+#include "hardware/pio.h"
+#include "pico/stdio.h"
+#include "pico/stdlib.h"
+#include "ws2812.pio.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include "pico-ssd1306/ssd1306.h"
-#include "pico/stdio.h"
-#include "pico/stdlib.h"
-#include "hardware/adc.h"
-#include "hardware/clocks.h"
-#include "hardware/pio.h"
-#include "ws2812.pio.h"
-#include "hardware/i2c.h"
-#include "ssd1306.h"
 
 static inline void put_pixel(uint32_t pixel_grb) {
   pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
@@ -52,10 +49,8 @@ static struct Hsv hsvReadPrevious = {0, 0, 0};
 static struct Hsv hsvReadCurrent = {0, 0, 0};
 
 static inline uint32_t urgb_u32(struct Rgb rgb) {
-  return
-    ((uint32_t)(rgb.r) << 8) |
-    ((uint32_t)(rgb.g) << 16) |
-    (uint32_t)(rgb.b);
+  return ((uint32_t)(rgb.r) << 8) | ((uint32_t)(rgb.g) << 16) |
+         (uint32_t)(rgb.b);
 }
 
 static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
@@ -63,7 +58,7 @@ static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
   float s = hsv.s;
   float v = hsv.v;
   float c = v * s;
-  float x = c * (1 - fabsf(fmodf((h / 60.0), 2) - 1));
+  float x = c * (1 - fabsf(fmodf((h / 60.0), 2.0f) - 1));
   float m = v - c;
   float rgb_[3];
   if (0) {
@@ -93,25 +88,33 @@ static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
     rgb_[2] = x;
   }
   struct Rgb result = {
-    .r = (uint32_t)((rgb_[0] + m) * 255),
-    .g = (uint32_t)((rgb_[1] + m) * 255),
-    .b = (uint32_t)((rgb_[2] + m) * 255),
+      .r = (uint32_t)((rgb_[0] + m) * 255),
+      .g = (uint32_t)((rgb_[1] + m) * 255),
+      .b = (uint32_t)((rgb_[2] + m) * 255),
   };
   return result;
 }
 
 static inline struct Hsv get_hsv_adc() {
-  // NOTE: division with integers will auto round, must multiply by 360 before deviding by 4096
+  // NOTE: division with integers will auto round, must multiply by 360 before
+  // deviding by 4096
   adc_select_input(0); // gp26
-  uint16_t h = ((uint16_t)adc_read()) * 360 / (1 << 12);
+  float h = ((uint16_t)adc_read()) * 360.0 / (1 << 12);
   adc_select_input(1); // gp27
-  uint16_t s = ((uint16_t)adc_read()) * 360 / (1 << 12);
+  float s = ((uint16_t)adc_read()) * 1.0 / (1 << 12);
   adc_select_input(2); // gp28
-  uint16_t v = ((uint16_t)adc_read()) * 360 / (1 << 12);
+  float v = ((uint16_t)adc_read()) * 1.0 / (1 << 12);
+
+  // FIXME: temperature
+  adc_select_input(3); // gp28
+  float temperature_voltage = ((uint16_t)adc_read()) * 3.3 / (1 << 12);
+  float temperature = 27 - (temperature_voltage - 0.706) / 0.001721;
+  printf("temperature: %f C\n", temperature);
+
   struct Hsv result = {
-    .h = h,
-    .s = s,
-    .v = v,
+      .h = h,
+      .s = s,
+      .v = v,
   };
   return result;
 }
@@ -141,54 +144,45 @@ int main() {
   adc_gpio_init(26); // GP26_A0: set hue
   adc_gpio_init(27); // GP27_A0: set saturation
   adc_gpio_init(28); // GP28_A0: set brightness
-  gpio_init(1); // GP1: toggle hsv1
+  adc_gpio_init(29); // GP29_A0: temperature
+  gpio_init(1);      // GP1: toggle hsv1
   gpio_set_dir(1, 0);
-
-  printf("start ssd13066? [y/n]\n");
-  char start_ssd1306_char = getchar_timeout_us(5e6);
-  if (start_ssd1306_char == 'y') {
-    i2c_init(I2C_PORT, 1000000); //Use i2c port with baud rate of 1Mhz
-    //Set pins for i2c operation
-    gpio_set_function(I2C_PIN_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_PIN_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_PIN_SDA);
-    gpio_pull_up(I2C_PIN_SCL);
-
-    //Create a new display object
-    pico_ssd1306::SSD1306 display = pico_ssd1306::SSD1306(I2C_PORT, 0x3D, pico_ssd1306::Size::W128xH64);
-
-    //create a vertical line on x: 64 y:0-63
-    for (int y = 0; y < 64; y++){
-        display.setPixel(64, y);
-    }
-    display.sendBuffer(); //Send buffer to device and show on screen
-  }
 
   PIO pio = pio0;
   uint offset = pio_add_program(pio, &ws2812_program);
 
   ws2812_program_init(pio, 0, offset, ws2812_pin_number, 800000);
 
+  struct Hsv hsvReadWeighted = {
+      .h = 0.0,
+      .s = 0.0,
+      .v = 0.0,
+  };
+
   while (1) {
-    blink();
     // read hsv input from adc pins & toggle current through each pot rapidly
     hsvReadCurrent = get_hsv_adc();
+
+    // weight the current readout relative to the previous one to stabilize noise
+    hsvReadWeighted.h = hsvReadWeighted.h * 0.9 + hsvReadCurrent.h * 0.1;
+    hsvReadWeighted.s = hsvReadWeighted.s * 0.9 + hsvReadCurrent.s * 0.1;
+    hsvReadWeighted.v = hsvReadWeighted.v * 0.9 + hsvReadCurrent.v * 0.1;
+
     // check to see if current input differs from previously cached one
     // if it differs, replace the corresponding hsv with the correct one
-    if (1
-        && hsvReadCurrent.h != hsvReadPrevious.h
-        && hsvReadCurrent.s != hsvReadPrevious.s
-        && hsvReadCurrent.v != hsvReadPrevious.v) {
+    if (hsvReadWeighted.h != hsvReadPrevious.h ||
+        hsvReadWeighted.s != hsvReadPrevious.s ||
+        hsvReadWeighted.v != hsvReadPrevious.v) {
       // hsv input has changed, from previous readout;
       // read switch to decide to change either hsv1 or hsv2
-      int changingHsv1 = gpio_get(1);
+      int changingHsv1 = !gpio_get(1);
       int changingHsv2 = !changingHsv1;
       // update corresponding hsv value
       if (changingHsv1) {
-        hsv1 = hsvReadCurrent;
+        hsv1 = hsvReadWeighted;
       }
       if (changingHsv2) {
-        hsv2 = hsvReadCurrent;
+        hsv2 = hsvReadWeighted;
       }
     }
 
@@ -196,8 +190,8 @@ int main() {
     float deltaH = hsv2.h - hsv1.h;
     // determine which direction (0->360 or 360->0) the hue should fade
     // based upon the difference of the two hues
-    if (0) {}
-    else if (360 > deltaH && deltaH > 180) {
+    if (0) {
+    } else if (360 > deltaH && deltaH > 180) {
       deltaH = 360 - deltaH;
     } else if (0 <= deltaH && deltaH <= 180) {
       // do nothing
@@ -223,10 +217,15 @@ int main() {
       hsv_current.s += s_step;
       hsv_current.v += v_step;
     }
+    printf("HSV1 (%f, %f, %f) -> ", hsv1.h, hsv1.s, hsv1.v);
+    printf("RGB1 (%i, %i, %i)\n", rgbs[0].r, rgbs[0].g, rgbs[0].b);
+    printf("HSV2 (%f, %f, %f) -> ", hsv2.h, hsv2.s, hsv2.v);
+    printf("RGB2 (%i, %i, %i)\n", rgbs[num_pixels - 1].r,
+           rgbs[num_pixels - 1].g, rgbs[num_pixels - 1].b);
     // push the pixels sequentially out of the stack
     for (int i = 0; i < num_pixels; i++) {
       put_pixel(urgb_u32(rgbs[i]));
     }
-    sleep_ms(1000);
+    sleep_ms(10);
   }
 }
