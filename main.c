@@ -54,44 +54,32 @@ static inline uint32_t urgb_u32(struct Rgb rgb) {
 }
 
 static inline struct Rgb hsv_to_rgb(struct Hsv hsv) {
-  float h = hsv.h;
-  float s = hsv.s;
-  float v = hsv.v;
-  float c = v * s;
-  float x = c * (1 - fabsf(fmodf((h / 60.0), 2.0f) - 1));
-  float m = v - c;
-  float rgb_[3];
-  if (0) {
-  } else if (0 <= h && h < 60) {
-    rgb_[0] = c;
-    rgb_[1] = x;
-    rgb_[2] = 0;
-  } else if (60 <= h && h < 120) {
-    rgb_[0] = x;
-    rgb_[1] = c;
-    rgb_[2] = 0;
-  } else if (120 <= h && h < 180) {
-    rgb_[0] = 0;
-    rgb_[1] = c;
-    rgb_[2] = x;
-  } else if (180 <= h && h < 240) {
-    rgb_[0] = 0;
-    rgb_[1] = x;
-    rgb_[2] = c;
-  } else if (240 <= h && h < 300) {
-    rgb_[0] = x;
-    rgb_[1] = 0;
-    rgb_[2] = c;
-  } else if (300 <= h && h < 360) {
-    rgb_[0] = c;
-    rgb_[1] = 0;
-    rgb_[2] = x;
+  float r, g, b;
+
+  float h = hsv.h / 360;
+  float s = hsv.s / 100;
+  float v = hsv.v / 100;
+
+  int i = floor(h * 6);
+  float f = h * 6 - i;
+  float p = v * (1 - s);
+  float q = v * (1 - f * s);
+  float t = v * (1 - (1 - f) * s);
+
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
   }
-  struct Rgb result = {
-      .r = (uint32_t)((rgb_[0] + m) * 255),
-      .g = (uint32_t)((rgb_[1] + m) * 255),
-      .b = (uint32_t)((rgb_[2] + m) * 255),
-  };
+
+  struct Rgb result;
+  result.r = r * 255;
+  result.g = g * 255;
+  result.b = b * 255;
+
   return result;
 }
 
@@ -101,15 +89,9 @@ static inline struct Hsv get_hsv_adc() {
   adc_select_input(0); // gp26
   float h = ((uint16_t)adc_read()) * 360.0 / (1 << 12);
   adc_select_input(1); // gp27
-  float s = ((uint16_t)adc_read()) * 1.0 / (1 << 12);
+  float s = ((uint16_t)adc_read()) * 100.0 / (1 << 12);
   adc_select_input(2); // gp28
-  float v = ((uint16_t)adc_read()) * 1.0 / (1 << 12);
-
-  // FIXME: temperature
-  adc_select_input(3); // gp28
-  float temperature_voltage = ((uint16_t)adc_read()) * 3.3 / (1 << 12);
-  float temperature = 27 - (temperature_voltage - 0.706) / 0.001721;
-  printf("temperature: %f C\n", temperature);
+  float v = ((uint16_t)adc_read()) * 100.0 / (1 << 12);
 
   struct Hsv result = {
       .h = h,
@@ -131,9 +113,15 @@ static inline void blink() {
   }
 }
 
-static inline int mod(float a, float b) {
+static inline float mod(float a, float b) {
   float r = fmodf(a, b);
   return r < 0.0 ? r + b : r;
+}
+
+static inline bool differenceOfFive(float a, float b) {
+  float diff = a - b;
+  diff = diff > 0 ? diff : -diff;
+  return diff > 5.0;
 }
 
 int main() {
@@ -145,6 +133,7 @@ int main() {
   adc_gpio_init(27); // GP27_A0: set saturation
   adc_gpio_init(28); // GP28_A0: set brightness
   adc_gpio_init(29); // GP29_A0: temperature
+  gpio_pull_up(1);
   gpio_init(1);      // GP1: toggle hsv1
   gpio_set_dir(1, 0);
 
@@ -164,19 +153,21 @@ int main() {
     hsvReadCurrent = get_hsv_adc();
 
     // weight the current readout relative to the previous one to stabilize noise
-    hsvReadWeighted.h = hsvReadWeighted.h * 0.9 + hsvReadCurrent.h * 0.1;
-    hsvReadWeighted.s = hsvReadWeighted.s * 0.9 + hsvReadCurrent.s * 0.1;
-    hsvReadWeighted.v = hsvReadWeighted.v * 0.9 + hsvReadCurrent.v * 0.1;
+    // FIXME: fine tune the weights
+    hsvReadWeighted.h = hsvReadWeighted.h * 0.5 + hsvReadCurrent.h * 0.5;
+    hsvReadWeighted.s = hsvReadWeighted.s * 0.5 + hsvReadCurrent.s * 0.5;
+    hsvReadWeighted.v = hsvReadWeighted.v * 0.5 + hsvReadCurrent.v * 0.5;
 
     // check to see if current input differs from previously cached one
     // if it differs, replace the corresponding hsv with the correct one
-    if (hsvReadWeighted.h != hsvReadPrevious.h ||
-        hsvReadWeighted.s != hsvReadPrevious.s ||
-        hsvReadWeighted.v != hsvReadPrevious.v) {
+    if (differenceOfFive(hsvReadWeighted.h, hsvReadPrevious.h) ||
+        differenceOfFive(hsvReadWeighted.s, hsvReadPrevious.s) ||
+        differenceOfFive(hsvReadWeighted.v, hsvReadPrevious.v)) {
+      hsvReadPrevious = hsvReadWeighted;
       // hsv input has changed, from previous readout;
       // read switch to decide to change either hsv1 or hsv2
-      int changingHsv1 = !gpio_get(1);
-      int changingHsv2 = !changingHsv1;
+      int changingHsv2 = !gpio_get(1);
+      int changingHsv1 = !changingHsv2;
       // update corresponding hsv value
       if (changingHsv1) {
         hsv1 = hsvReadWeighted;
@@ -188,17 +179,11 @@ int main() {
 
     // create an array of rgb pixels
     float deltaH = hsv2.h - hsv1.h;
-    // determine which direction (0->360 or 360->0) the hue should fade
-    // based upon the difference of the two hues
-    if (0) {
-    } else if (360 > deltaH && deltaH > 180) {
-      deltaH = 360 - deltaH;
-    } else if (0 <= deltaH && deltaH <= 180) {
-      // do nothing
-    } else if (0 > deltaH && deltaH > -180) {
-      // do nothing
-    } else if (-180 >= deltaH && deltaH >= -360) {
-      deltaH = 360 + deltaH;
+    // normalize deltaH to the range [-180, 180]
+    if (deltaH > 180) {
+      deltaH -= 360;
+    } else if (deltaH < -180) {
+      deltaH += 360;
     }
     // choose steps such that
     // the range [0,num_pixels-1) maps to [hsv1.value,hsv2.value]
@@ -217,15 +202,15 @@ int main() {
       hsv_current.s += s_step;
       hsv_current.v += v_step;
     }
+    printf("GPIO1: %d | ", gpio_get(1));
     printf("HSV1 (%f, %f, %f) -> ", hsv1.h, hsv1.s, hsv1.v);
-    printf("RGB1 (%i, %i, %i)\n", rgbs[0].r, rgbs[0].g, rgbs[0].b);
+    printf("RGB1 (%i, %i, %i) | ", rgbs[0].r, rgbs[0].g, rgbs[0].b);
     printf("HSV2 (%f, %f, %f) -> ", hsv2.h, hsv2.s, hsv2.v);
-    printf("RGB2 (%i, %i, %i)\n", rgbs[num_pixels - 1].r,
-           rgbs[num_pixels - 1].g, rgbs[num_pixels - 1].b);
+    printf("RGB2 (%i, %i, %i)\n", rgbs[num_pixels - 1].r, rgbs[num_pixels - 1].g, rgbs[num_pixels - 1].b);
     // push the pixels sequentially out of the stack
     for (int i = 0; i < num_pixels; i++) {
       put_pixel(urgb_u32(rgbs[i]));
     }
-    sleep_ms(10);
+    sleep_ms(100);
   }
 }
