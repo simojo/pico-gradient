@@ -1,9 +1,7 @@
 #include "hardware/adc.h"
-#include "hardware/clocks.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
 #include "pico/stdio.h"
-#include "pico/stdlib.h"
 #include "ws2812.pio.h"
 #include <math.h>
 #include <stdio.h>
@@ -26,10 +24,6 @@ static inline void put_pixel(uint32_t pixel_grb) {
 const uint led_pin = 25;
 const uint num_pixels = 150;
 const int ws2812_pin_number = 0; // GP0: ws2812 bit bashing to neopixel
-
-#define I2C_PORT i2c0
-#define I2C_PIN_SDA 4
-#define I2C_PIN_SCL 5
 
 struct Hsv {
   float h;
@@ -125,7 +119,6 @@ static inline bool differenceOfFive(float a, float b) {
 }
 
 int main() {
-  printf("starting\n");
   stdio_init_all();
   adc_init();
 

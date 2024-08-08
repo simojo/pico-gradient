@@ -10,6 +10,7 @@ pico_sdk_init()
 
 add_executable(pico-gradient
     main.c
+    ssd1306.c
 )
 
 # Add pico_stdlib library which aggregates commonly used features
