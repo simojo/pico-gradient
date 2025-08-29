@@ -1,0 +1,9 @@
+CompileFlags:
+  Add: [
+    -isystem,
+    /nix/store/r4ifcp74rrdxxgklznb6wrqziwyfd7kf-gcc-arm-embedded-14.3.rel1/bin/../lib/gcc/arm-none-eabi/14.3.1/include,
+    -isystem,
+    /nix/store/r4ifcp74rrdxxgklznb6wrqziwyfd7kf-gcc-arm-embedded-14.3.rel1/bin/../lib/gcc/arm-none-eabi/14.3.1/include-fixed,
+    -isystem,
+    /nix/store/r4ifcp74rrdxxgklznb6wrqziwyfd7kf-gcc-arm-embedded-14.3.rel1/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/include
+  ]
